@@ -5,42 +5,34 @@
 //  Created by 강윤호 on 6/25/25.
 //
 
+// ContentView.swift
 import SwiftUI
 
 struct ContentView: View {
+    // 현재 로딩 중인지 상태를 관리하는 변수
+    @State private var isLoading = true
+
     var body: some View {
-            VStack {
-                Spacer() // 컨텐츠를 중앙으로 밀기 위한 Spacer
-
-                // 로고 이미지와 원형 배경
-                ZStack {
-                    // 로고 이미지
-                    Image("AppMainIcon") // 2단계에서 추가한 에셋 이름
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 200)
-                        .clipShape(Circle())
-                        
+        // isLoading 값에 따라 보여줄 뷰를 결정
+        if isLoading {
+            LoadingView()
+                .onAppear {
+                    // LoadingView가 화면에 나타나면 2초 후에 실행
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        // 애니메이션과 함께 부드럽게 전환
+                        withAnimation {
+                            self.isLoading = false
+                        }
+                    }
                 }
-
-                Spacer().frame(height: 50) // 로고와 아래 텍스트 사이 간격
-
-                // 하단 텍스트
-                Text("자취하는 당신의")
-                    .font(.headline)
-                    .foregroundColor(.gray)
-                Text("요리 품격을 높여줄,")
-                    .font(.headline)
-                    .foregroundColor(.gray)
-                Spacer() // 컨텐츠를 중앙으로 밀기 위한 Spacer
-                Spacer()
-            }
+        } else {
+            SignInView()
         }
     }
+}
 
-    // 미리보기용 코드
-    struct LoadingView_Previews: PreviewProvider {
-        static var previews: some View {
-            ContentView()
-        }
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
     }
+}
