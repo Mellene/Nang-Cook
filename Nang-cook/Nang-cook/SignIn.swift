@@ -74,11 +74,11 @@ struct SignInView: View {
                 HStack {
                     Text("Continue with Apple")
                 }
-                .foregroundColor(Color.white)
+                .foregroundColor(.black)
                 .fontWeight(.medium)
                 .frame(width: 250, height: 15)
                 .padding()
-                .background(Color.black)
+                .background(Color(.systemGray5))
                 .cornerRadius(8)
             }
             
