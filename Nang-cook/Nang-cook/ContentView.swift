@@ -18,7 +18,7 @@ struct ContentView: View {
             LoadingView()
                 .onAppear {
                     // LoadingView가 화면에 나타나면 2초 후에 실행
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
                         // 애니메이션과 함께 부드럽게 전환
                         withAnimation {
                             self.isLoading = false
@@ -26,7 +26,7 @@ struct ContentView: View {
                     }
                 }
         } else {
-            SignInView()
+            StartView()
         }
     }
 }

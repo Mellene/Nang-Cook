@@ -1,4 +1,11 @@
 //
+//  SignUp.swift
+//  Nang-cook
+//
+//  Created by 강윤호 on 7/7/25.
+//
+
+//
 //  SignIn.swift
 //  Nang-cook
 //
@@ -7,7 +14,7 @@
 
 import SwiftUI
 
-struct SignInView: View {
+struct SignUpView: View {
     @State private var email: String=""
     @State private var showPasswordFields: Bool = false
     @State private var password: String=""
@@ -22,13 +29,13 @@ struct SignInView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
                 
-                Text("로그인")
+                Text("계정 생성")
                     .fontWeight(.medium)
                 
-                Text("이메일을 입력해주세요")
+                Text("계정 생성을 위해서 이메일을 입력해주세요")
                     .font(.subheadline)
                     .foregroundColor(.gray)
-                    .padding(.bottom, 2)
+                    .padding(.bottom, 32)
                 
                 TextField("E-mail", text: $email)
                     .padding()
@@ -45,7 +52,6 @@ struct SignInView: View {
                     }) {
                         Text("Continue")
                             .foregroundColor(.white)
-                            .fontWeight(.semibold)
                             .frame(width: 200, height: 15)
                             .padding()
                             .background(Color("FontColor2"))
@@ -56,7 +62,12 @@ struct SignInView: View {
                         .padding()
                         .background(Color(.systemGray6))
                         .cornerRadius(8)
-                    //                TODO: 사용자 정보가 없을 시, "정보가 없습니다" 라는 문구 띄워주기 모달로
+                    
+                    SecureField("Confirm Password", text: $confirmPassword)
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                    
                     if !confirmPassword.isEmpty && password != confirmPassword {
                         Text("패스워드가 일치하지 않습니다.")
                             .foregroundColor(.red)
@@ -69,9 +80,8 @@ struct SignInView: View {
                         // TODO: 이메일로 계속하기 로직 추가
                         print("Send verification to \(email)")
                     }) {
-                        Text("Log-in")
+                        Text("이메일 인증 보내기")
                             .foregroundColor(.white)
-                            .fontWeight(.semibold)
                             .frame(width: 200, height: 15)
                             .padding()
                             .background(Color("FontColor2"))
@@ -80,37 +90,61 @@ struct SignInView: View {
                     .padding(.top, 8)
                 }
                 
-                Spacer()
+                // Or 구분선
+                HStack {
+                    VStack { Divider() }
+                    Text("또는")
+                        .padding(.horizontal)
+                        .font(.system(size: 15))
+                    VStack { Divider() }
+                }
+                .padding(.vertical)
+                
                 // 소셜 로그인 버튼들
                 // 구글로 계속하기
                 Button(action: {
                     //TODO: 구글 로그인 로직 추가
                 }) {
                     HStack {
-                        Text("아이디/비밀번호 찾기")
-                            .font(.system(size: 16))
+                        Text("Continue with Google")
                     }
-                    .foregroundColor(Color("FontColor2"))
-                    .frame(width: 250, height: 15)
+                    .foregroundColor(.white)
+                    .frame(width: 250, height: 10)
                     .padding()
-                    .underline()
+                    .background(Color("FontColor2"))
+                    .cornerRadius(8)
                 }
-                Text("계정이 없으신가요?")
-                    .font(.system(size: 14))
                 Button(action: {
                     // TODO: Apple 로그인 로직 추가
                 }) {
                     HStack {
+                        Text("Continue with Apple")
+                    }
+                    .foregroundColor(.white)
+                    .frame(width: 250, height: 10)
+                    .padding()
+                    .background(Color("FontColor2"))
+                    .cornerRadius(8)
+                }
+                Text("계정이 있으신가요?")
+                    .font(.system(size: 15))
+                    .padding(.top)
+                
+                HStack {
+                    Button(action: {
+                        //TODO: 구글 로그인 로직 추가
+                    }) {
                         NavigationLink {
-                            SignUpView()
+                            SignInView()
                         } label: {
-                            Text("계정 생성")
+                            Text("로그인")
                                 .font(.system(size: 16))
                                 .underline()
                         }
                         .foregroundColor(Color("FontColor2"))
                         .frame(width: 250, height: 15)
-                        
+                        .padding()
+                        .underline()
                     }
                 }
                 
@@ -127,8 +161,8 @@ struct SignInView: View {
     }
 }
 
-struct SignInView_Previews: PreviewProvider {
+struct SignUpView_Previews: PreviewProvider {
     static var previews: some View {
-        SignInView()
+        SignUpView()
     }
 }
