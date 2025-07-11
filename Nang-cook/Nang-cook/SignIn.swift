@@ -6,13 +6,15 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct SignInView: View {
-    @State private var email: String=""
+    @State private var email: String = ""
     @State private var showPasswordFields: Bool = false
-    @State private var password: String=""
-    @State private var confirmPassword: String=""
-    
+    @State private var password: String = ""
+    @State private var errorMsg: String?
+    @State private var isVerified = false  // 로그인 성공 플래그
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
@@ -30,6 +32,7 @@ struct SignInView: View {
                     .foregroundColor(.gray)
                     .padding(.bottom, 2)
                 
+                // 1) 이메일 입력
                 TextField("E-mail", text: $email)
                     .padding()
                     .background(Color(.systemGray6))
@@ -37,82 +40,86 @@ struct SignInView: View {
                     .keyboardType(.emailAddress)
                     .autocapitalization(.none)
                 
+                // 2) Continue → 비밀번호 폼 노출
                 if !showPasswordFields {
-                    Button(action: {
-                        withAnimation {
-                            showPasswordFields = true
-                        }
-                    }) {
-                        Text("Continue")
-                            .foregroundColor(.white)
-                            .fontWeight(.semibold)
-                            .frame(width: 200, height: 15)
-                            .padding()
-                            .background(Color("FontColor2"))
-                            .cornerRadius(8)
+                    Button("Continue") {
+                        withAnimation { showPasswordFields = true }
                     }
-                } else {
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .background(Color("FontColor2"))
+                    .cornerRadius(8)
+                }
+                
+                // 3) 비밀번호 입력 & 로그인 버튼
+                if showPasswordFields {
                     SecureField("Password", text: $password)
                         .padding()
                         .background(Color(.systemGray6))
                         .cornerRadius(8)
-                    //                TODO: 사용자 정보가 없을 시, "정보가 없습니다" 라는 문구 띄워주기 모달로
-                    if !confirmPassword.isEmpty && password != confirmPassword {
-                        Text("패스워드가 일치하지 않습니다.")
+                    
+                    // 에러 메시지
+                    if let err = errorMsg {
+                        Text(err)
                             .foregroundColor(.red)
+                            .font(.caption)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 4)
                     }
-                }
-                if showPasswordFields {
-                    Button(action: {
-                        // TODO: 이메일로 계속하기 로직 추가
-                        print("Send verification to \(email)")
-                    }) {
-                        Text("Log-in")
-                            .foregroundColor(.white)
-                            .fontWeight(.semibold)
-                            .frame(width: 200, height: 15)
-                            .padding()
-                            .background(Color("FontColor2"))
-                            .cornerRadius(8)
+                    
+                    Button("Log-in") {
+                        errorMsg = nil
+                        guard !email.isEmpty, !password.isEmpty else {
+                            errorMsg = "이메일과 비밀번호를 모두 입력해주세요."
+                            return
+                        }
+                        Auth.auth().signIn(withEmail: email, password: password) { result, error in
+                            if let error = error {
+                                errorMsg = error.localizedDescription
+                            } else {
+                                isVerified = true
+                            }
+                        }
                     }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .background(Color("FontColor2"))
+                    .cornerRadius(8)
                     .padding(.top, 8)
                 }
                 
-                Spacer()
+                Divider()
+                    .padding(.vertical)
+                
                 // 소셜 로그인 버튼들
-                // 구글로 계속하기
-                Button(action: {
-                    //TODO: 구글 로그인 로직 추가
-                }) {
-                    HStack {
-                        Text("아이디/비밀번호 찾기")
-                            .font(.system(size: 16))
-                    }
-                    .foregroundColor(Color("FontColor2"))
-                    .frame(width: 250, height: 15)
-                    .padding()
-                    .underline()
+                Button("Continue with Google") {
+                    // TODO: Google 로그인 로직
                 }
-                Text("계정이 없으신가요?")
-                    .font(.system(size: 14))
-                Button(action: {
-                    // TODO: Apple 로그인 로직 추가
-                }) {
-                    HStack {
-                        NavigationLink {
-                            SignUpView()
-                        } label: {
-                            Text("계정 생성")
-                                .font(.system(size: 16))
-                                .underline()
-                        }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(Color("FontColor2"))
+                .cornerRadius(8)
+                
+                Button("Continue with Apple") {
+                    // TODO: Apple 로그인 로직
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(Color("FontColor2"))
+                .cornerRadius(8)
+                
+                Spacer()
+                
+                // 기존 로그인 링크
+                HStack {
+                    Text("계정이 없으신가요?")
+                        .font(.system(size: 15))
+                    NavigationLink("계정 생성", destination: SignUpView())
+                        .font(.system(size: 15))
+                        .underline()
                         .foregroundColor(Color("FontColor2"))
-                        .frame(width: 250, height: 15)
-                        
-                    }
                 }
+                .padding(.top)
                 
                 Spacer()
                 
@@ -123,6 +130,10 @@ struct SignInView: View {
                     .padding(.bottom)
             }
             .padding()
+            // 로그인 성공(isVerified == true)이 되면 MainView()로 푸시
+            .navigationDestination(isPresented: $isVerified) {
+                MainView()
+            }
         }
     }
 }
