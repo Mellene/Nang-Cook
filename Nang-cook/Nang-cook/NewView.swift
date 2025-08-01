@@ -6,128 +6,145 @@
 //
 
 import SwiftUI
-import UIKit
+import PhotosUI // PhotosPicker를 위해 임포트
 import FirebaseAuth
 import FirebaseFirestore
+
+// MARK: - 1. 화면의 상태를 명확히 정의
+enum NavigationDestination: Hashable {
+    case analyzing(UIImage)
+    case results(image: UIImage, ingredients: [String])
+}
 
 struct NewView: View {
     @StateObject private var userVM = UserViewModel()
     
-    // MARK: – 사진 선택 관련 상태
-    @State private var showingSourceAction = false
-    @State private var showingImagePicker = false
-    @State private var imagePickerSource: UIImagePickerController.SourceType = .photoLibrary
-    @State private var pickedImage: UIImage?
-    
+    // MARK: - 상태 변수
+    @State private var path = [NavigationDestination]()
+    @State private var showingConfirmationDialog = false // ✅ 메뉴 표시 여부
+    @State private var showingImagePicker = false      // ✅ 이미지 피커 표시 여부
+    @State private var imagePickerSource: UIImagePickerController.SourceType = .camera // ✅ 카메라/앨범 소스
+        
     var body: some View {
-        NavigationStack {
+        // 내비게이션 경로(path)를 추적하는 NavigationStack
+        NavigationStack(path: $path) {
             VStack {
+                // 상단 커스텀 네비게이션 바
                 HStack {
                     Spacer()
                     Text("냉쿡").font(.headline)
                     Spacer()
-                  }
-                  .frame(height: 44)
-                  .background(Color.white)
-                  .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
-                
-                Spacer(minLength: 80)
-                
-                // ───── 제목 & 안내 ─────
-                VStack(spacing: 12) {
-                    Text("요리합시다!")
-                        .font(.title).bold()
-                    Text("""
-                       \(userVM.nickname)님의 냉장고 속
-                       식재료를 찍어주세요!
-                       """)
-                    .font(.body)
-                    .multilineTextAlignment(.center)
                 }
+                .frame(height: 44)
                 
-                Spacer(minLength: 40)
-                
-                // ───── 선택 버튼 ─────
-                Button {
-                    showingSourceAction = true
-                } label: {
-                    HStack {
-                        Image(systemName: "camera.fill")
-                        Text("식재료 사진 찍으러 가기")
-                            .fontWeight(.semibold)
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(
-                        Capsule()
-                            .fill(Color(.systemGreen).opacity(0.8))
-                    )
-                    .foregroundColor(.white)
-                }
-                // 확인 대화창
-                .confirmationDialog("사진을 어디에서 가져올까요?", isPresented: $showingSourceAction, titleVisibility: .visible) {
-                    Button("카메라로 촬영") {
-                        imagePickerSource = .camera
-                        showingImagePicker = true
-                    }
-                    Button("사진 보관함에서 선택") {
-                        imagePickerSource = .photoLibrary
-                        showingImagePicker = true
-                    }
-                    Button("취소", role: .cancel) { }
-                }
-                // 이미지 피커 모달
-                .sheet(isPresented: $showingImagePicker) {
-                    ImagePicker(sourceType: imagePickerSource, image: $pickedImage)
-                }
-                
-                Spacer()
-                
-                // ───── 미리보기 ─────
-                if let uiImg = pickedImage {
-                    Image(uiImage: uiImg)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxHeight: 200)
-                        .padding()
+                // 메인 컨텐츠
+                mainContentView
+            }
+            .safeAreaInset(edge: .bottom) { TabBar() }
+            .background(Color(.systemGroupedBackground))
+            .navigationBarHidden(true)
+            
+            // MARK: - 내비게이션 목적지 설정
+            .navigationDestination(for: NavigationDestination.self) { destination in
+                switch destination {
+                case .analyzing(let image):
+                    AnalyzingView(image: image, path: $path)
+                case .results(let image, let ingredients):
+                    ResultsView(image: image, ingredients: ingredients)
                 }
             }
+        }
+    }
+    
+    // MARK: - Helper Views & Actions
+    
+    /// 메인 컨텐츠 뷰
+    private var mainContentView: some View {
+        VStack {
+            Spacer()
             
-            .safeAreaInset(edge: .bottom) {
-                TabBar()
+            Text("요리합시다!")
+                .font(.largeTitle).bold()
+                .padding(.bottom, 8)
+            
+            Text("\(userVM.nickname)님의 냉장고를\nAI로 분석해 재료를 확인해보세요!")
+                .font(.headline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.bottom, 40)
+            
+            // 사진 선택을 위한 Confirmation Dialog를 띄우는 버튼
+            Button(action: {
+                showingConfirmationDialog = true
+            }) {
+                Text("냉장고 속 들여다 보기")
+                    .font(.title3).bold()
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(15)
+                    .shadow(radius: 5)
+            }
+            .padding(.horizontal, 40)
+            
+            Spacer()
+        }
+        // MARK: - 이미지 피커 시트
+        // UIKit의 UIImagePickerController를 띄우기 위해 .sheet를 사용
+        .confirmationDialog("사진 가져오기", isPresented: $showingConfirmationDialog, titleVisibility: .visible) {
+            Button("카메라로 촬영") {
+                self.imagePickerSource = .camera
+                self.showingImagePicker = true
+            }
+            Button("사진 보관함에서 선택") {
+                self.imagePickerSource = .photoLibrary
+                self.showingImagePicker = true
+            }
+            Button("취소", role: .cancel) {}
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(sourceType: self.imagePickerSource) { image in
+                // 이미지가 선택되면, .analyzing 화면으로 이동
+                path.append(.analyzing(image))
             }
         }
     }
 }
 
-
 // MARK: – UIKit 래퍼: UIImagePickerController
+// ImagePicker.swift (또는 코드가 위치한 파일)
 struct ImagePicker: UIViewControllerRepresentable {
-    let sourceType: UIImagePickerController.SourceType
-    @Binding var image: UIImage?
+    // ‼️ 타입이 @Binding이 아닌, (UIImage) -> Void 클로저 타입이어야 합니다.
+    var sourceType: UIImagePickerController.SourceType
+    var onImagePicked: (UIImage) -> Void
+
     @Environment(\.presentationMode) private var presentationMode
-    
+
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.sourceType = sourceType
-        picker.delegate   = context.coordinator
+        picker.delegate = context.coordinator
         return picker
     }
-    
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) { }
-    
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
-    
-    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        let parent: ImagePicker
-        init(_ parent: ImagePicker) { self.parent = parent }
+
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        var parent: ImagePicker
         
-        func imagePickerController(_ picker: UIImagePickerController,
-                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let uiImage = info[.originalImage] as? UIImage {
-                parent.image = uiImage
+        init(_ parent: ImagePicker) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                // ‼️ 바인딩에 값을 할당하는 대신, onImagePicked 클로저를 호출합니다.
+                parent.onImagePicked(image)
             }
             parent.presentationMode.wrappedValue.dismiss()
         }
@@ -170,8 +187,11 @@ struct ImagePicker: UIViewControllerRepresentable {
 
 final class UserViewModel: ObservableObject {
     @Published var nickname: String = ""
-    
-    private var db = Firestore.firestore()
+    // 'db'를 저장 프로퍼티가 아닌 '계산 프로퍼티'로 변경
+    private var db: Firestore {
+        // db를 처음 사용하려는 시점에 인스턴스 생성
+        return Firestore.firestore()
+    }
     private var listener: ListenerRegistration?
     
     init() {
