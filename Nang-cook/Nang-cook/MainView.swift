@@ -11,93 +11,69 @@ import FirebaseCore
 import FirebaseFirestore
 
 struct MainView: View {
-    
+
     @StateObject private var vm = NicknameViewModel()
-    // NavigationStack의 경로를 관리하는 상태 변수
-    @State private var path = [NavigationDestination]()
-    
+
     var body: some View {
-        // path를 바인딩하여 프로그래밍 방식의 화면 전환을 제어합니다.
-        NavigationStack(path: $path) {
-            VStack(spacing: 24) {
-                Spacer(minLength: 80)
-                
-                // ───── 안내 ─────
-                Text("환영합니다!")
-                    .font(.title).bold()
-                
-                Text("신규 회원이신가요?\n회원님의 닉네임을 정해주세요!")
-                    .multilineTextAlignment(.center)
-                    .font(.subheadline)
-                
-                // ───── 닉네임 입력 ─────
-                VStack(spacing: 12) {
-                    TextField("ex: 동동이", text: $vm.nickname)
-                        .textFieldStyle(.roundedBorder)
-                        .onChange(of: vm.nickname) { vm.validateNickname() }
-                    
-                    // 👇 --- 버튼 로직 단순화 --- 👇
-                    // isAvailable 상태에 따라 버튼을 다르게 보여줍니다.
-                    if vm.isAvailable {
-                        // 2. 닉네임 사용 가능 시 "닉네임 확정" 버튼
-                        Button("닉네임 확정") { vm.saveNickname() }
-                            .frame(width: 240, height: 44)
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                            .disabled(vm.isSaving) // 저장 중에는 비활성화
-                        
-                    } else {
-                        // 1. 초기 상태 "닉네임 중복 확인" 버튼
-                        Button("닉네임 중복 확인") { vm.checkAvailability() }
-                            .frame(width: 240, height: 44)
-                            .background(Color("FontColor2"))
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                            .disabled(!vm.canCheck)
-                    }
-                    // --- 버튼 로직 단순화 끝 ---
-                    
-                    // 결과 메시지
-                    if let msg = vm.feedback {
-                        Text(msg)
-                            .font(.footnote)
-                            .foregroundColor(vm.feedbackColor)
-                    }
+        VStack(spacing: 24) {
+            Spacer(minLength: 80)
+
+            // ───── 안내 ─────
+            Text("환영합니다!")
+                .font(.title).bold()
+
+            Text("신규 회원이신가요?\n회원님의 닉네임을 정해주세요!")
+                .multilineTextAlignment(.center)
+                .font(.subheadline)
+
+            // ───── 닉네임 입력 ─────
+            VStack(spacing: 12) {
+                TextField("ex: 동동이", text: $vm.nickname)
+                    .textFieldStyle(.roundedBorder)
+                    .onChange(of: vm.nickname) { vm.validateNickname() }
+
+                // 👇 --- 버튼 로직 단순화 --- 👇
+                // isAvailable 상태에 따라 버튼을 다르게 보여줍니다.
+                if vm.isAvailable {
+                    // 2. 닉네임 사용 가능 시 "닉네임 확정" 버튼
+                    Button("닉네임 확정") { vm.saveNickname() }
+                        .frame(width: 240, height: 44)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                        .disabled(vm.isSaving) // 저장 중에는 비활성화
+
+                } else {
+                    // 1. 초기 상태 "닉네임 중복 확인" 버튼
+                    Button("닉네임 중복 확인") { vm.checkAvailability() }
+                        .frame(width: 240, height: 44)
+                        .background(Color("FontColor2"))
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                        .disabled(!vm.canCheck)
                 }
-                .padding(.horizontal)
-                
-                Spacer()
-                
-            }
-            .padding()
-            .navigationTitle("냉쿡")
-            .navigationBarTitleDisplayMode(.inline)
-            // 👇 --- 화면 전환 로직 --- 👇
-            // 1. isSaved 상태가 true로 변하는 것을 감지합니다.
-            .onChange(of: vm.isSaved) { oldValue, newValue in
-                if newValue {
-                    // 2. path 배열에 목적지를 추가하여 화면 전환을 트리거합니다.
-                    path.append(.newView)
+                // --- 버튼 로직 단순화 끝 ---
+
+                // 결과 메시지
+                if let msg = vm.feedback {
+                    Text(msg)
+                        .font(.footnote)
+                        .foregroundColor(vm.feedbackColor)
                 }
             }
-            // 3. path에 추가된 목적지에 맞는 View를 실제로 보여줍니다.
-            .navigationDestination(for: NavigationDestination.self) { destination in
-                switch destination {
-                case .newView:
-                    NewView()
-                case .analyzing(let image):
-                    AnalyzingView(image: image, path: $path)
-                case .results(let image, let ingredients):
-                    ResultsView(image: image, ingredients: ingredients)
-                }
-            }
-            .alert("오류", isPresented: $vm.showError, actions: {
-                Button("확인", role: .cancel) { }
-            }, message: {
-                Text(vm.errorMessage ?? "알 수 없는 오류가 발생했습니다.")
-            })
+            .padding(.horizontal)
+
+            Spacer()
+
         }
+        .padding()
+        .navigationTitle("냉쿡")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("오류", isPresented: $vm.showError, actions: {
+            Button("확인", role: .cancel) { }
+        }, message: {
+            Text(vm.errorMessage ?? "알 수 없는 오류가 발생했습니다.")
+        })
     }
 }
     

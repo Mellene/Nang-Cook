@@ -17,25 +17,28 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     // 1. Firebase 앱을 가장 먼저 초기화합니다.
     FirebaseApp.configure()
     
-    // 2. 디버그 모드일 때만 로컬 에뮬레이터에 연결합니다.
+    // 2. 디버그 모드에서는 환경 변수에 따라 로컬 에뮬레이터에 연결할 수 있습니다.
     #if DEBUG
-    print("🐛 디버그 모드: Firebase 로컬 에뮬레이터에 연결합니다.")
-    
-    // 로컬 네트워크의 Mac IP 주소 또는 localhost
-    // 시뮬레이터에서는 localhost(127.0.0.1)를 사용하고,
-    // 실제 기기 테스트 시에는 Mac의 IP 주소를 사용해야 합니다.
-    let host = "127.0.0.1" // 실제 기기 테스트 시 "192.168.1.223" 등으로 변경
-    
-    // Firestore 에뮬레이터 설정
-    let settings = Firestore.firestore().settings
-    settings.host = "\(host):8080"
-    settings.isSSLEnabled = false
-    settings.cacheSettings = MemoryCacheSettings()
-    Firestore.firestore().settings = settings
-    
-    // Auth 에뮬레이터 설정
-    Auth.auth().useEmulator(withHost: host, port: 9099)
-    
+    if ProcessInfo.processInfo.environment["USE_FIREBASE_EMULATOR"] == "1" {
+      print("🐛 디버그 모드: Firebase 로컬 에뮬레이터에 연결합니다.")
+
+      // 로컬 네트워크의 Mac IP 주소 또는 localhost
+      // 시뮬레이터에서는 localhost(127.0.0.1)를 사용하고,
+      // 실제 기기 테스트 시에는 Mac의 IP 주소를 사용해야 합니다.
+      let host = ProcessInfo.processInfo.environment["FIREBASE_EMULATOR_HOST"] ?? "127.0.0.1"
+
+      // Firestore 에뮬레이터 설정
+      let settings = Firestore.firestore().settings
+      settings.host = "\(host):8080"
+      settings.isSSLEnabled = false
+      settings.cacheSettings = MemoryCacheSettings()
+      Firestore.firestore().settings = settings
+
+      // Auth 에뮬레이터 설정
+      Auth.auth().useEmulator(withHost: host, port: 9099)
+    } else {
+      print("🐛 디버그 모드: Firebase 에뮬레이터를 사용하지 않습니다.")
+    }
     #else
     // --- 실제 앱 배포(릴리즈) 시에는 이 부분이 실행됩니다. ---
     // 별도의 코드가 없어도 FirebaseApp.configure()에 의해
