@@ -36,6 +36,7 @@
 		5B5B94D32E1E35EE0064F602 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5B5B94D22E1E35EE0064F602 /* FirebaseCore */; };
 		5B5B94D92E1E379B0064F602 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 5B5B94D82E1E379B0064F602 /* GoogleSignIn */; };
 		5B5B94DB2E1E379B0064F602 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 5B5B94DA2E1E379B0064F602 /* GoogleSignInSwift */; };
+		5BE0FA9A2E4B50C1005D9E56 /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = 5BE0FA992E4B50C1005D9E56 /* GoogleGenerativeAI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -112,6 +113,7 @@
 				5B2D88F92E20A1AC00287084 /* FirebaseDynamicLinks in Frameworks */,
 				5B2D88F32E20A1AC00287084 /* FirebaseAuthCombine-Community in Frameworks */,
 				5B2D89032E20A1AC00287084 /* FirebaseInstallations in Frameworks */,
+				5BE0FA9A2E4B50C1005D9E56 /* GoogleGenerativeAI in Frameworks */,
 				5B2D88F72E20A1AC00287084 /* FirebaseDatabase in Frameworks */,
 				5B5B94D12E1E35EE0064F602 /* FirebaseAuth in Frameworks */,
 				5B2D88E92E20A1AC00287084 /* FirebaseAnalyticsCore in Frameworks */,
@@ -215,6 +217,7 @@
 				5B2D890C2E20A1AC00287084 /* FirebaseStorage */,
 				5B2D890E2E20A1AC00287084 /* FirebaseStorageCombine-Community */,
 				5B2D89102E20A1AC00287084 /* FirebaseVertexAI */,
+				5BE0FA992E4B50C1005D9E56 /* GoogleGenerativeAI */,
 			);
 			productName = "Nang-cook";
 			productReference = 5B2877A82E0C609E007C55AC /* Nang-cook.app */;
@@ -301,6 +304,7 @@
 			packageReferences = (
 				5BF5C70B2E1CD471008F3D26 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				5B5B94D72E1E379B0064F602 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				5BE0FA982E4B50C1005D9E56 /* XCRemoteSwiftPackageReference "generative-ai-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5B2877A92E0C609E007C55AC /* Products */;
@@ -671,6 +675,14 @@
 				minimumVersion = 9.0.0;
 			};
 		};
+		5BE0FA982E4B50C1005D9E56 /* XCRemoteSwiftPackageReference "generative-ai-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/generative-ai-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.6;
+			};
+		};
 		5BF5C70B2E1CD471008F3D26 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
@@ -826,6 +838,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 5B5B94D72E1E379B0064F602 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignInSwift;
+		};
+		5BE0FA992E4B50C1005D9E56 /* GoogleGenerativeAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5BE0FA982E4B50C1005D9E56 /* XCRemoteSwiftPackageReference "generative-ai-swift" */;
+			productName = GoogleGenerativeAI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

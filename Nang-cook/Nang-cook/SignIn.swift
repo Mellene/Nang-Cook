@@ -14,7 +14,7 @@ struct SignInView: View {
     @State private var password: String = ""
     @State private var errorMsg: String?
     @State private var isVerified = false  // 로그인 성공 플래그
-
+    
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
@@ -90,25 +90,6 @@ struct SignInView: View {
                 
                 Divider()
                     .padding(.vertical)
-                
-                // 소셜 로그인 버튼들
-                Button("Continue with Google") {
-                    // TODO: Google 로그인 로직
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .background(Color("FontColor2"))
-                .cornerRadius(8)
-                
-                Button("Continue with Apple") {
-                    // TODO: Apple 로그인 로직
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .background(Color("FontColor2"))
-                .cornerRadius(8)
-                
-                Spacer()
                 
                 // 기존 로그인 링크
                 HStack {

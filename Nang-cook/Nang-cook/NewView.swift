@@ -4,31 +4,51 @@
 //
 //  Created by 강윤호 on 7/12/25.
 //
-
 import SwiftUI
-import PhotosUI // PhotosPicker를 위해 임포트
+import PhotosUI
 import FirebaseAuth
 import FirebaseFirestore
 
-// MARK: - 1. 화면의 상태를 명확히 정의
+// ‼️ NavigationDestination은 프로젝트 내에서 단 한 번만 정의되어야 합니다.
+// 모든 내비게이션 목적지를 여기에 포함해야 합니다.
 enum NavigationDestination: Hashable {
     case analyzing(UIImage)
     case results(image: UIImage, ingredients: [String])
+    case newView // MainView에서 NewView로 이동하기 위해 이 case가 반드시 필요합니다.
+
+    // Hashable을 올바르게 구현합니다.
+    func hash(into hasher: inout Hasher) {
+        switch self {
+        case .analyzing(let image):
+            hasher.combine("analyzing")
+            hasher.combine(image)
+        case .results(let image, let ingredients):
+            hasher.combine("results")
+            hasher.combine(image)
+            hasher.combine(ingredients)
+        // newView case에 대한 해시 로직을 추가합니다.
+        case .newView:
+            hasher.combine("newView")
+        }
+    }
 }
 
 struct NewView: View {
-    @StateObject private var userVM = UserViewModel()
+    @EnvironmentObject var userVM: UserViewModel
     
-    // MARK: - 상태 변수
+    // 내비게이션 스택과 이미지 피커 관련 상태
     @State private var path = [NavigationDestination]()
-    @State private var showingConfirmationDialog = false // ✅ 메뉴 표시 여부
-    @State private var showingImagePicker = false      // ✅ 이미지 피커 표시 여부
-    @State private var imagePickerSource: UIImagePickerController.SourceType = .camera // ✅ 카메라/앨범 소스
-        
+    @State private var showingConfirmationDialog = false
+    @State private var showingImagePicker = false
+    @State private var imagePickerSource: UIImagePickerController.SourceType = .camera
+    
+    // 👇 --- 탭바 선택 상태를 관리할 변수 추가 --- 👇
+    @State private var selectedTab: Int = 0
+            
     var body: some View {
         // 내비게이션 경로(path)를 추적하는 NavigationStack
         NavigationStack(path: $path) {
-            VStack {
+            VStack(spacing: 0) {
                 // 상단 커스텀 네비게이션 바
                 HStack {
                     Spacer()
@@ -37,10 +57,13 @@ struct NewView: View {
                 }
                 .frame(height: 44)
                 
-                // 메인 컨텐츠
-                mainContentView
+                // 👇 --- 선택된 탭에 따라 다른 뷰를 보여줌 --- 👇
+                currentTabView
             }
-            .safeAreaInset(edge: .bottom) { TabBar() }
+            .safeAreaInset(edge: .bottom) {
+                // TabBar에 selection 바인딩을 전달
+                TabBar(selection: $selectedTab)
+            }
             .background(Color(.systemGroupedBackground))
             .navigationBarHidden(true)
             
@@ -51,15 +74,35 @@ struct NewView: View {
                     AnalyzingView(image: image, path: $path)
                 case .results(let image, let ingredients):
                     ResultsView(image: image, ingredients: ingredients)
+                case .newView:
+                    EmptyView()
                 }
             }
         }
     }
     
-    // MARK: - Helper Views & Actions
+    // MARK: - Views
     
-    /// 메인 컨텐츠 뷰
-    private var mainContentView: some View {
+    /// 선택된 탭에 따라 보여줄 뷰를 결정
+    @ViewBuilder
+    private var currentTabView: some View {
+        switch selectedTab {
+        case 0: // 홈 탭
+            homeContentView
+        case 3: // 프로필 탭
+            SettingsView()
+        default: // 나머지 탭
+            // 각 탭에 맞는 뷰를 여기에 추가할 수 있습니다.
+            VStack {
+                Spacer()
+                Text("탭 \(selectedTab + 1)")
+                Spacer()
+            }
+        }
+    }
+    
+    /// 홈 탭의 메인 컨텐츠 뷰
+    private var homeContentView: some View {
         VStack {
             Spacer()
             
@@ -67,13 +110,14 @@ struct NewView: View {
                 .font(.largeTitle).bold()
                 .padding(.bottom, 8)
             
-            Text("\(userVM.nickname)님의 냉장고를\nAI로 분석해 재료를 확인해보세요!")
-                .font(.headline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.bottom, 40)
+            if let nickname = userVM.user?.nickname {
+                Text("\(nickname)님의 냉장고를\nAI로 분석해 재료를 확인해보세요!")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.bottom, 40)
+            }
             
-            // 사진 선택을 위한 Confirmation Dialog를 띄우는 버튼
             Button(action: {
                 showingConfirmationDialog = true
             }) {
@@ -90,8 +134,6 @@ struct NewView: View {
             
             Spacer()
         }
-        // MARK: - 이미지 피커 시트
-        // UIKit의 UIImagePickerController를 띄우기 위해 .sheet를 사용
         .confirmationDialog("사진 가져오기", isPresented: $showingConfirmationDialog, titleVisibility: .visible) {
             Button("카메라로 촬영") {
                 self.imagePickerSource = .camera
@@ -105,17 +147,42 @@ struct NewView: View {
         }
         .sheet(isPresented: $showingImagePicker) {
             ImagePicker(sourceType: self.imagePickerSource) { image in
-                // 이미지가 선택되면, .analyzing 화면으로 이동
                 path.append(.analyzing(image))
             }
         }
     }
 }
 
-// MARK: – UIKit 래퍼: UIImagePickerController
-// ImagePicker.swift (또는 코드가 위치한 파일)
+// MARK: - 설정 페이지 뷰 (새로 추가)
+struct SettingsView: View {
+    @EnvironmentObject var userVM: UserViewModel
+    
+    var body: some View {
+        List {
+            Section(header: Text("계정")) {
+                if let nickname = userVM.user?.nickname {
+                    Text(nickname)
+                }
+                
+                Button(role: .destructive, action: {
+                    // 👇 --- 로그아웃 액션 설명 추가 --- 👇
+                    // 이 코드가 실행되면 Firebase에서 사용자가 로그아웃됩니다.
+                    // UserViewModel이 이 로그아웃 상태 변화를 감지하고,
+                    // 최상위 뷰(ContentView)가 화면을 자동으로
+                    // 로그인/초기 화면(StartView)으로 전환시켜 줍니다.
+                    try? Auth.auth().signOut()
+                }) {
+                    Text("로그아웃")
+                }
+            }
+        }
+        .listStyle(.grouped)
+    }
+}
+
+
+// MARK: - UIKit 래퍼: UIImagePickerController
 struct ImagePicker: UIViewControllerRepresentable {
-    // ‼️ 타입이 @Binding이 아닌, (UIImage) -> Void 클로저 타입이어야 합니다.
     var sourceType: UIImagePickerController.SourceType
     var onImagePicked: (UIImage) -> Void
 
@@ -143,7 +210,6 @@ struct ImagePicker: UIViewControllerRepresentable {
         
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
             if let image = info[.originalImage] as? UIImage {
-                // ‼️ 바인딩에 값을 할당하는 대신, onImagePicked 클로저를 호출합니다.
                 parent.onImagePicked(image)
             }
             parent.presentationMode.wrappedValue.dismiss()
@@ -155,65 +221,35 @@ struct ImagePicker: UIViewControllerRepresentable {
     }
 }
 
-    // MARK: - 2) 하단 탭바 (재사용)
-    struct TabBar: View {
-        @State private var selection = 0
-        private let icons = ["house.fill", "slash.circle", "bell", "person"]
-        
-        var body: some View {
-            HStack {
-                ForEach(icons.indices, id: \.self) { idx in
-                    Spacer()
-                    Button {
-                        selection = idx
-                    } label: {
-                        Image(systemName: icons[idx])
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(selection == idx ? .primary : .secondary)
-                    }
-                    Spacer()
+// MARK: - 하단 탭바 (수정됨)
+struct TabBar: View {
+    // 👇 --- @State 대신 @Binding으로 변경 --- 👇
+    @Binding var selection: Int
+    private let icons = ["house.fill", "slash.circle", "bell", "person"]
+    
+    var body: some View {
+        HStack {
+            ForEach(icons.indices, id: \.self) { idx in
+                Spacer()
+                Button {
+                    // 바인딩된 selection 값을 변경
+                    selection = idx
+                } label: {
+                    Image(systemName: icons[idx])
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(selection == idx ? .primary : .secondary)
                 }
-            }
-            .padding(.vertical, 10)
-            .background(Color(.systemBackground).ignoresSafeArea())
-            .overlay(
-                Rectangle()
-                    .frame(height: 0.5)
-                    .foregroundColor(Color(.separator)),
-                alignment: .top
-            )
-        }
-    }
-
-final class UserViewModel: ObservableObject {
-    @Published var nickname: String = ""
-    // 'db'를 저장 프로퍼티가 아닌 '계산 프로퍼티'로 변경
-    private var db: Firestore {
-        // db를 처음 사용하려는 시점에 인스턴스 생성
-        return Firestore.firestore()
-    }
-    private var listener: ListenerRegistration?
-    
-    init() {
-        fetchNickname()
-    }
-    
-    deinit {
-        listener?.remove()
-    }
-    
-    func fetchNickname() {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        let userRef = db.collection("users").document(uid)
-        
-        // 실시간으로 변경 감지하려면 snapshotListener 사용
-        listener = userRef.addSnapshotListener { [weak self] snap, err in
-            guard let data = snap?.data(), err == nil else { return }
-            let name = data["nickname"] as? String ?? ""
-            DispatchQueue.main.async {
-                self?.nickname = name
+                Spacer()
             }
         }
+        .padding(.vertical, 10)
+        .background(Color(.systemBackground).ignoresSafeArea())
+        .overlay(
+            Rectangle()
+                .frame(height: 0.5)
+                .foregroundColor(Color(.separator)),
+            alignment: .top
+        )
     }
 }
 

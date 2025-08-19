@@ -18,7 +18,7 @@ struct StartView: View {
                 VStack(spacing: 32) {
                     Spacer()
                     
-                    // 1) 로고 & 타이틀
+                    // 1) 로고 & 타이틀 
                     VStack(spacing: -20) {
                         Image("AppMainIcon")    // Assets.xcassets 에 넣은 냉장고 캐릭터
                             .resizable()

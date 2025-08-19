@@ -7,30 +7,37 @@
 
 // ContentView.swift
 import SwiftUI
+import SwiftUI
+import FirebaseAuth
+import FirebaseFirestore
 
 struct ContentView: View {
-    // 현재 로딩 중인지 상태를 관리하는 변수
-    @State private var isLoading = true
-
+    
+    @StateObject private var userViewModel = UserViewModel()
+    
     var body: some View {
-        // isLoading 값에 따라 보여줄 뷰를 결정
-        if isLoading {
-            LoadingView()
-                .onAppear {
-                    // LoadingView가 화면에 나타나면 2초 후에 실행
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                        // 애니메이션과 함께 부드럽게 전환
-                        withAnimation {
-                            self.isLoading = false
-                        }
-                    }
-                }
-        } else {
-            StartView()
+        // NavigationStack은 여기에 딱 한 번만 선언합니다.
+        NavigationStack {
+            if userViewModel.isLoading {
+                ProgressView()
+            } else if userViewModel.user == nil {
+                // 👇 --- 이 부분이 추가되었습니다 --- 👇
+                // 1. 로그인된 사용자가 아예 없으면 LoginView를 보여줍니다.
+                SignUpView()
+                    .environmentObject(userViewModel) // LoginView도 ViewModel이 필요할 수 있습니다.
+            } else if userViewModel.user?.nickname != nil {
+                // 2. 닉네임이 있으면 NewView를 보여줍니다.
+                NewView()
+                    .environmentObject(userViewModel)
+            } else {
+                // 3. 닉네임이 없으면 MainView를 보여줍니다.
+                MainView()
+                // MainView도 userViewModel을 사용하도록 전달해주는 것이 좋습니다.
+                    .environmentObject(userViewModel)
+            }
         }
     }
 }
-
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()

@@ -13,9 +13,12 @@ import FirebaseFirestore
 struct MainView: View {
     
     @StateObject private var vm = NicknameViewModel()
-
+    // NavigationStack의 경로를 관리하는 상태 변수
+    @State private var path = [NavigationDestination]()
+    
     var body: some View {
-        NavigationStack {
+        // path를 바인딩하여 프로그래밍 방식의 화면 전환을 제어합니다.
+        NavigationStack(path: $path) {
             VStack(spacing: 24) {
                 Spacer(minLength: 80)
                 
@@ -32,28 +35,10 @@ struct MainView: View {
                     TextField("ex: 동동이", text: $vm.nickname)
                         .textFieldStyle(.roundedBorder)
                         .onChange(of: vm.nickname) { vm.validateNickname() }
-                        .disabled(vm.isSaved) // 저장 후에는 입력 비활성화
                     
-                    // 👇 --- 버튼 로직 변경 --- 👇
-                    // isSaved, isAvailable 상태에 따라 버튼을 다르게 보여줍니다.
-                    if vm.isSaved {
-                        // 3. 최종 저장 완료 후 "확인" 버튼
-                        Button(action: {
-                            
-                        }) {
-                            // TODO: 닉네임 설정 완료 후 다음 화면으로 넘어가거나
-                            // 현재 뷰를 닫는 코드를 여기에 추가하세요.
-                            NavigationLink {
-                                NewView()
-                            } label: {
-                                Text("확인")
-                                    .frame(width: 240, height: 44)
-                                    .background(Color.gray)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(8)
-                            }
-                        }
-                    } else if vm.isAvailable {
+                    // 👇 --- 버튼 로직 단순화 --- 👇
+                    // isAvailable 상태에 따라 버튼을 다르게 보여줍니다.
+                    if vm.isAvailable {
                         // 2. 닉네임 사용 가능 시 "닉네임 확정" 버튼
                         Button("닉네임 확정") { vm.saveNickname() }
                             .frame(width: 240, height: 44)
@@ -71,7 +56,7 @@ struct MainView: View {
                             .cornerRadius(8)
                             .disabled(!vm.canCheck)
                     }
-                    // --- 버튼 로직 변경 끝 ---
+                    // --- 버튼 로직 단순화 끝 ---
                     
                     // 결과 메시지
                     if let msg = vm.feedback {
@@ -82,23 +67,40 @@ struct MainView: View {
                 }
                 .padding(.horizontal)
                 
-                // ‼️ 기존의 최종 저장 버튼은 위의 로직에 통합되어 제거합니다.
-                
                 Spacer()
                 
             }
             .padding()
             .navigationTitle("냉쿡")
             .navigationBarTitleDisplayMode(.inline)
+            // 👇 --- 화면 전환 로직 --- 👇
+            // 1. isSaved 상태가 true로 변하는 것을 감지합니다.
+            .onChange(of: vm.isSaved) { oldValue, newValue in
+                if newValue {
+                    // 2. path 배열에 목적지를 추가하여 화면 전환을 트리거합니다.
+                    path.append(.newView)
+                }
+            }
+            // 3. path에 추가된 목적지에 맞는 View를 실제로 보여줍니다.
+            .navigationDestination(for: NavigationDestination.self) { destination in
+                switch destination {
+                case .newView:
+                    NewView()
+                case .analyzing(let image):
+                    AnalyzingView(image: image, path: $path)
+                case .results(let image, let ingredients):
+                    ResultsView(image: image, ingredients: ingredients)
+                }
+            }
+            .alert("오류", isPresented: $vm.showError, actions: {
+                Button("확인", role: .cancel) { }
+            }, message: {
+                Text(vm.errorMessage ?? "알 수 없는 오류가 발생했습니다.")
+            })
         }
-        .alert("오류", isPresented: $vm.showError, actions: {
-            Button("확인", role: .cancel) { }
-        }, message: {
-            Text(vm.errorMessage ?? "알 수 없는 오류가 발생했습니다.")
-        })
     }
 }
-
+    
 final class NicknameViewModel: ObservableObject {
     // 👉 입력값
     @Published var nickname: String = ""
@@ -165,7 +167,7 @@ final class NicknameViewModel: ObservableObject {
         feedback   = "확인 중..."
         
         let nickDoc = db.collection("nicknames")
-                          .document(nickname.lowercased())
+            .document(nickname.lowercased())
         
         nickDoc.getDocument { [weak self] snapshot, error in
             guard let self = self else { return }
@@ -177,7 +179,7 @@ final class NicknameViewModel: ObservableObject {
             }
             self.isAvailable = snapshot?.exists == false
             self.feedback = self.isAvailable ? "사용 가능한 닉네임입니다 🙆‍♂️"
-                                             : "이미 사용 중인 닉네임입니다 😢"
+            : "이미 사용 중인 닉네임입니다 😢"
         }
     }
     
@@ -188,15 +190,15 @@ final class NicknameViewModel: ObservableObject {
         isSaving  = true
         
         let nickRef = db.collection("nicknames")
-                        .document(nickname.lowercased())
+            .document(nickname.lowercased())
         let userRef = db.collection("users")
-                        .document(uid)
+            .document(uid)
         
         db.runTransaction({ (tx, err) -> Any? in
             if (try? tx.getDocument(nickRef))?.exists == true {
                 err?.pointee = NSError(domain: "Nickname",
-                                      code: 1,
-                                      userInfo: [NSLocalizedDescriptionKey : "이미 사용 중입니다"])
+                                       code: 1,
+                                       userInfo: [NSLocalizedDescriptionKey : "이미 사용 중입니다"])
                 return nil
             }
             tx.setData(["uid" : uid], forDocument: nickRef)

@@ -198,7 +198,7 @@ struct SignUpView: View {
                     }
                 )
                 .signInWithAppleButtonStyle(.black)
-                .frame(width: .infinity, height: 44)
+                .frame(maxWidth: .infinity, minHeight: 44)
                 .cornerRadius(8)
                 
                 if let err = appleSignUpError {
